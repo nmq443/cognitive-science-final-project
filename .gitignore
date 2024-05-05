@@ -161,3 +161,4 @@ cython_debug/
 
 # Dataset
 BCI2a/
+BCI2a-mat/
