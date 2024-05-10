@@ -2,6 +2,9 @@
 
 Final project for Cognitive Science class (RBE3046 1) University of Engineering and Technology - Vietnam National University (UET-VNU).  
 
+## Goal
+Construct artificial EEG data using Generative adverserial networks (GAN) and then combine this data with original dataset to see if GAN can improve performance.
+
 ## How to run preprocess_data.ipynb:
 Install BCI competition IV dataset 2a and save it in this directory with name `BCI2a-mat` with this format:
 
