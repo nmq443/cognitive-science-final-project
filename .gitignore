@@ -160,5 +160,4 @@ cython_debug/
 #.idea/
 
 # Dataset
-BCI2a/
-BCI2a-mat/
+BCICIV-2a-mat/
