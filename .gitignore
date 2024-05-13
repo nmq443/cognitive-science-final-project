@@ -161,6 +161,3 @@ cython_debug/
 
 # Dataset
 BCICIV-2a-mat/
-
-# Virtual environment
-cognitive-science-env/
