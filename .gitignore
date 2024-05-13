@@ -161,3 +161,4 @@ cython_debug/
 
 # Dataset
 BCICIV-2a-mat/
+.torcheeg/
