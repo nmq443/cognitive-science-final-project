@@ -15,7 +15,7 @@ from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
 from sklearn.metrics import accuracy_score 
 
 
-def train(dataset_conf, train_conf, results_path):
+def train_model(dataset_conf, train_conf, results_path):
     
     # remove the 'result' folder before training
     if os.path.exists(results_path):
