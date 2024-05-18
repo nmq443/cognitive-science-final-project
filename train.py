@@ -6,6 +6,7 @@ import tensorflow as tf
 from sklearn.metrics import cohen_kappa_score
 from sklearn.model_selection import train_test_split
 from preprocess import get_data
+from utils import getModel
 
 def train(dataset_conf, train_conf, results_path):
     
