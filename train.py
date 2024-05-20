@@ -11,7 +11,6 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import CategoricalCrossentropy
 from evaluation import draw_learning_curves
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
-from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
 from sklearn.metrics import accuracy_score 
 
 

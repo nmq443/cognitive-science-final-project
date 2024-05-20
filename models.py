@@ -29,6 +29,7 @@ from tensorflow.keras.constraints import max_norm
 from tensorflow.keras import backend as K
 
 from attention_models import attention_block
+import numpy as np
 
 #%% The proposed ATCNet model, https://doi.org/10.1109/TII.2022.3197419
 def ATCNet_(n_classes, in_chans = 22, in_samples = 1125, n_windows = 5, attention = 'mha', 
@@ -115,7 +116,97 @@ def ATCNet_(n_classes, in_chans = 22, in_samples = 1125, n_windows = 5, attentio
         out = Activation('softmax', name = 'softmax')(sw_concat)
        
     return Model(inputs = input_1, outputs = out)
+    
+def ATCNet_CWT(n_classes, in_chans = 22, in_samples = 1125, n_windows = 5, attention = 'mha', 
+           eegn_F1 = 16, eegn_D = 2, eegn_kernelSize = 64, eegn_poolSize = 7, eegn_dropout=0.3, 
+           tcn_depth = 2, tcn_kernelSize = 4, tcn_filters = 32, tcn_dropout = 0.3, 
+           tcn_activation = 'elu', fuse = 'average'):
+    
+    """ ATCNet model from Altaheri et al 2023.
+        See details at https://ieeexplore.ieee.org/abstract/document/9852687
+    
+        Notes
+        -----
+        The initial values in this model are based on the values identified by
+        the authors
+        
+        References
+        ----------
+        .. H. Altaheri, G. Muhammad, and M. Alsulaiman. "Physics-informed 
+           attention temporal convolutional network for EEG-based motor imagery 
+           classification." IEEE Transactions on Industrial Informatics, 
+           vol. 19, no. 2, pp. 2249-2258, (2023) 
+           https://doi.org/10.1109/TII.2022.3197419
+    """
+    fs = 250
+    freq_range = (1,15)
+    freq_bins = 100
+    freq = np.linspace(freq_range[0],freq_range[1],freq_bins)
+    w=5
+    widths = w * fs / (2 * freq * np.pi) 
+    input_1 = Input(shape = (in_chans, widths.shape[0], in_samples))   #     TensorShape([None, 1, 22, 1125])
+    input_2 = Permute((3,2,1))(input_1) 
 
+    dense_weightDecay = 0.5  
+    conv_weightDecay = 0.009
+    conv_maxNorm = 0.6
+    from_logits = False
+
+    numFilters = eegn_F1
+    F2 = numFilters*eegn_D
+
+    block1 = Conv_block_(input_layer = input_2, F1 = eegn_F1, D = eegn_D, 
+                        kernLength = eegn_kernelSize, poolSize = eegn_poolSize,
+                        weightDecay = conv_weightDecay, maxNorm = conv_maxNorm,
+                        in_chans = in_chans, dropout = eegn_dropout)
+    block1 = Lambda(lambda x: x[:,:,-1,:])(block1)
+       
+    # Sliding window 
+    sw_concat = []   # to store concatenated or averaged sliding window outputs
+    for i in range(n_windows):
+        st = i
+        end = block1.shape[1]-n_windows+i+1
+        block2 = block1[:, st:end, :]
+        
+        # Attention_model
+        if attention is not None:
+            if (attention == 'se' or attention == 'cbam'):
+                block2 = Permute((2, 1))(block2) # shape=(None, 32, 16)
+                block2 = attention_block(block2, attention)
+                block2 = Permute((2, 1))(block2) # shape=(None, 16, 32)
+            else: block2 = attention_block(block2, attention)
+
+        # Temporal convolutional network (TCN)
+        block3 = TCN_block_(input_layer = block2, input_dimension = F2, depth = tcn_depth,
+                            kernel_size = tcn_kernelSize, filters = tcn_filters, 
+                            weightDecay = conv_weightDecay, maxNorm = conv_maxNorm,
+                            dropout = tcn_dropout, activation = tcn_activation)
+        # Get feature maps of the last sequence
+        block3 = Lambda(lambda x: x[:,-1,:])(block3)
+        
+        # Outputs of sliding window: Average_after_dense or concatenate_then_dense
+        if(fuse == 'average'):
+            sw_concat.append(Dense(n_classes, kernel_regularizer=L2(dense_weightDecay))(block3))
+        elif(fuse == 'concat'):
+            if i == 0:
+                sw_concat = block3
+            else:
+                sw_concat = Concatenate()([sw_concat, block3])
+                
+    if(fuse == 'average'):
+        if len(sw_concat) > 1: # more than one window
+            sw_concat = tf.keras.layers.Average()(sw_concat[:])
+        else: # one window (# windows = 1)
+            sw_concat = sw_concat[0]
+    elif(fuse == 'concat'):
+        sw_concat = Dense(n_classes, kernel_regularizer=L2(dense_weightDecay))(sw_concat)
+               
+    if from_logits:  # No activation here because we are using from_logits=True
+        out = Activation('linear', name = 'linear')(sw_concat)
+    else:   # Using softmax activation
+        out = Activation('softmax', name = 'softmax')(sw_concat)
+       
+    return Model(inputs = input_1, outputs = out)
 #%% Convolutional (CV) block used in the ATCNet model
 def Conv_block(input_layer, F1=4, kernLength=64, poolSize=8, D=2, in_chans=22, dropout=0.1):
     """ Conv_block
