@@ -25,6 +25,12 @@ def load_BCI2a_data(data_path, subject, training, all_trials = True):
         all_trials: bool
             if True, load all trials
             if False, ignore trials with artifacts 
+
+        Return
+        ------
+        data_return: numpy.ndarray in shape (num_trials, num_inputs, num_eegs/num_channels, num_samples)
+        class_return: numpy.ndarray 
+
     """
     
     # Define MI-trials parameters
