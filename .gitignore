@@ -161,6 +161,7 @@ cython_debug/
 
 # Dataset
 BCICIV-2a-mat/
+BCI Competition IV/
 .torcheeg/
 
 # Vscode settings
