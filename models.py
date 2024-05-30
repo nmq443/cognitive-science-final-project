@@ -577,6 +577,24 @@ def EEGNet_classifier(n_classes, Chans=22, Samples=1125, F1=8, D=2, kernLength=6
     
     return Model(inputs=input1, outputs=softmax)
 
+def EEGNet_CWT(n_classes, Chans=22, Samples=1125, F1=8, D=2, kernLength=64, dropout_eeg=0.25):
+    fs = 250
+    freq_range = (1,15)
+    freq_bins = 100
+    freq = np.linspace(freq_range[0],freq_range[1],freq_bins)
+    w=5
+    widths = w * fs / (2 * freq * np.pi) 
+    input_1 = Input(shape = (widths.shape[0], in_chans, in_samples))   #     TensorShape([None, 1, 22, 1125])
+    input_2 = Permute((3,2,1))(input_1) 
+    regRate=.25
+
+    eegnet = EEGNet(input_layer=input2, F1=F1, kernLength=kernLength, D=D, Chans=Chans, dropout=dropout_eeg)
+    eegnet = Flatten()(eegnet)
+    dense = Dense(n_classes, name = 'dense',kernel_constraint = max_norm(regRate))(eegnet)
+    softmax = Activation('softmax', name = 'softmax')(dense)
+    
+    return Model(inputs=input1, outputs=softmax)
+
 def EEGNet(input_layer, F1=8, kernLength=64, D=2, Chans=22, dropout=0.25):
     """ EEGNet model from Lawhern et al 2018
     See details at https://arxiv.org/abs/1611.08024
